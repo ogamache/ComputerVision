@@ -1,8 +1,7 @@
 numpy
-matplotlib
-os
 click
 sklearn
-cv2
+opencv-python
 tqdm
 bokeh
+matplotlib
