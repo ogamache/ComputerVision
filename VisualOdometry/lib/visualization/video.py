@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from lib.visualization.image import put_text, draw_matches
+from .image import put_text, draw_matches
 
 def play_trip(l_frames, r_frames=None, lat_lon=None, timestamps=None, color_mode=False, waite_time=100, win_name="Trip"):
     l_r_mode = r_frames is not None

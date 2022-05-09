@@ -1,18 +1,20 @@
 import os
+from click import style
 import numpy as np
 import cv2
+from sklearn import datasets
 
-from VisualOdometry.lib.visualization import plotting
-from VisualOdometry.lib.visualization.video import play_trip
+from lib.visualization import plotting
+from lib.visualization.video import play_trip
 
 from tqdm import tqdm
 
 
 class VisualOdometry():
-    def __init__(self, data_dir):
+    def __init__(self, data_dir, image_dir):
         self.K, self.P = self._load_calib(os.path.join(data_dir, 'calib.txt'))
-        self.gt_poses = self._load_poses(os.path.join(data_dir,"poses.txt"))
-        self.images = self._load_images(os.path.join(data_dir,"image_l"))
+        self.images = self._load_images(os.path.join(data_dir,image_dir))
+        self.number_images = len(self.images)
         self.orb = cv2.ORB_create(3000)
         FLANN_INDEX_LSH = 6
         index_params = dict(algorithm=FLANN_INDEX_LSH, table_number=6, key_size=12, multi_probe_level=1)
@@ -34,8 +36,8 @@ class VisualOdometry():
         """
         with open(filepath, 'r') as f:
             params = np.fromstring(f.readline(), dtype=np.float64, sep=' ')
-            P = np.reshape(params, (3, 4))
-            K = P[0:3, 0:3]
+            P = np.reshape(params[0:12], (3, 4))
+            K = np.reshape(params[12:], (3, 3))
         return K, P
 
     @staticmethod
@@ -95,7 +97,7 @@ class VisualOdometry():
         T[:3, 3] = t
         return T
 
-    def get_matches(self, i):
+    def get_matches(self, i, visualization):
         """
         This function detect and compute keypoints and descriptors from the i-1'th and i'th image using the class orb object
 
@@ -128,9 +130,10 @@ class VisualOdometry():
                  matchesMask = None, # draw only inliers
                  flags = 2)
 
-        img3 = cv2.drawMatches(self.images[i], kp1, self.images[i-1],kp2, good ,None,**draw_params)
-        cv2.imshow("image", img3)
-        cv2.waitKey(200)
+        if visualization:
+            img3 = cv2.drawMatches(self.images[i], kp1, self.images[i-1],kp2, good ,None,**draw_params)
+            cv2.imshow("image", img3)
+            cv2.waitKey(200)
 
         # Get the image points form the good matches
         q1 = np.float32([kp1[m.queryIdx].pt for m in good])
@@ -224,22 +227,30 @@ class VisualOdometry():
 
 
 def main():
-    data_dir = "./VisualOdometry/KITTI_sequence_1"  # Try KITTI_sequence_2 too
-    vo = VisualOdometry(data_dir)
+    # data_dir = "../../../../data/campus_march23th_2022/images/2022-03-23-09-47-05"
+    data_dir = "../../../../data/campus_march23th_2022/images/2022-03-23-10-02-52"
+    image_folder = "et_500_small"
+    # data_dir = "../../../../data/forest_april28th_2022/images/cameras"
 
-    play_trip(vo.images)  # Comment out to not play the trip
+    visualization = True
 
-    gt_path = []
+    vo = VisualOdometry(data_dir, image_folder)
+
+    if visualization:
+        play_trip(vo.images)  # Comment out to not play the trip
+
+    gt_path = [(0,0)]
     estimated_path = []
-    for i, gt_pose in enumerate(tqdm(vo.gt_poses, unit="pose")):
+    for i, image in enumerate(tqdm(vo.images, unit="pose")):
         if i == 0:
-            cur_pose = gt_pose
+            cur_pose = np.eye(4)
         else:
-            q1, q2 = vo.get_matches(i)
+            q1, q2 = vo.get_matches(i, visualization)
             transf = vo.get_pose(q1, q2)
             cur_pose = np.matmul(cur_pose, np.linalg.inv(transf))
-        gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
+        # gt_path.append((gt_pose[0, 3], gt_pose[2, 3]))
         estimated_path.append((cur_pose[0, 3], cur_pose[2, 3]))
+    gt_path = [(0,0) for i in range(0,len(estimated_path))]
     plotting.visualize_paths(gt_path, estimated_path, "Visual Odometry", file_out=os.path.basename(data_dir) + ".html")
 
 

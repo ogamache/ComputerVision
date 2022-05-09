@@ -1,6 +1,8 @@
 import os
+from click import style
 import numpy as np
 import cv2
+from sklearn import datasets
 
 from lib.visualization import plotting
 from lib.visualization.video import play_trip
@@ -224,7 +226,7 @@ class VisualOdometry():
 
 
 def main():
-    data_dir = "KITTI_sequence_2"  # Try KITTI_sequence_2 too
+    data_dir = "KITTI_sequence_1"  # Try KITTI_sequence_2 too
     vo = VisualOdometry(data_dir)
 
     play_trip(vo.images)  # Comment out to not play the trip
