@@ -1,0 +1,8 @@
+numpy
+matplotlib
+os
+click
+sklearn
+cv2
+tqdm
+bokeh
